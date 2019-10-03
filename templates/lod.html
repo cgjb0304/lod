@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ja" dir="ltr">
+
+<head>
+
+<meta charset="utf-8">
+<title>LOD</title>
+<script src="http://maps.google.com/maps/api/js?key=AIzaSyCj0oOcIJIJqkKlqF2xEd2dafBVuxmRAjg&language=ja"></script>
+
+<style>
+html { height: 100% }
+body { height: 100% }
+#map { height: 50%; width: 100%}
+    h1 {
+  color: #364e96;/*文字色*/
+  padding: 0.5em 0;/*上下の余白*/
+  border-top: solid 3px #364e96;/*上線*/
+  border-bottom: solid 3px #364e96;/*下線*/
+}
+    h3 {
+  color: #364e96;/*文字色*/
+  border: solid 3px #364e96;/*線色*/
+  padding: 0.5em;/*文字周りの余白*/
+  border-radius: 0.5em;/*角丸*/
+}
+    h4 {
+  padding: 0.25em 0.5em;/*上下 左右の余白*/
+  color: #494949;/*文字色*/
+  background: transparent;/*背景透明に*/
+  border-left: solid 5px #7db4e6;/*左線*/
+}
+</style>
+
+</head>
+
+<body>
+
+<h1>
+    <center>
+ わどなび
+        </center>
+</h1>
+
+<form  action="{%  url 'lod' %}" method="post" enctype="multipart/form-data">
+    {%  csrf_token %}
+        <input type="hidden" id="data_lag" class="data_lag" name="data_lag" value="{{ data_lag }}">
+        <input type="hidden" id="data_lng" class="data_lng" name="data_lng" value="{{ data_lng }}" >
+        <input type="hidden" id="name" class="name" name="name" value="{{ name }}" >
+        <input type="hidden" id="lat" class="lat" name="lat" value="{{ lat }}" >
+        <input type="hidden" id="lng" class="lng" name="lng" value="{{ lng }}" >
+        &nbsp;&nbsp;<input type="text" class="address" name="address" id="address" placeholder="地名を入力！" onchange="OnButtonClick();"/><br/>
+        &nbsp;&nbsp;<input type="text" class="form-control" name="freeword" placeholder="食べたい物を入力！" /><br/>
+        <input type="hidden" id="point" class="point" name="point">
+        &nbsp;&nbsp;&nbsp;<button type="submit" class="btn btn-primary" name="button">検索</button>
+        <input type="button" value="やり直し" onclick="window.location.reload();" />
+</form>
+<br/>
+
+<from>
+    <input type="hidden" id="data_lat" class="data_lat" name="data_lat" value="{{ data_lat }}" >
+    <input type="hidden" id="data_lng" class="data_lng" name="data_lng" value="{{ data_lng }}" >
+</from>
+
+<div id="map"></div>
+
+{#<div id="ans1"></div>#}
+{#<div id="ans2"></div>#}
+<br/><br/>
+
+<div class="tag">
+<h3>
+    <b>＊結果</b>
+</h3>
+<div class="cost" id="{{ tag }}" data-toggle="modal" data-target="#detail_view" data-backdrop="true"
+     data-item_id="{{ tag }}">
+    <p></p>
+    <div class="tag">
+        {% for items in tag %}
+            {% for item in items %}
+                {% if forloop.first %}
+                    <h4>
+                    <p>店名：{{ item }}</p>
+                    </h4>
+
+                {% else %}
+                    &nbsp;&nbsp;{{ item }}<br/>
+
+                {% endif %}
+
+            {% endfor %}
+        {% endfor %}
+    <br/>
+    </div>
+
+</div>
+{#        {% if forloop.counter|divisibleby:"4" %}#}
+{#            <div class="w-auto"></div>#}
+{#        {% endif %}#}
+{#    <div class="w-100"></div>#}
+{#</div>#}
+<br/>
+
+<div class="taste">
+<h3>
+    <b>＊味・風味</b>
+</h3>
+<div class="col item_cell" id="{{ taste }}" data-toggle="modal" data-target="#detail_view" data-backdrop="true"
+     data-item_id="{{ taste }}">
+    <p></p>
+    <div class="taste">
+        {% for item in taste %}
+            &nbsp;&nbsp;{{ item }}<br/>
+
+        {% empty %}
+            &nbsp;&nbsp;データがありませんでした．
+
+        {% endfor %}
+    </p>
+    </div>
+</div>
+<br/>
+
+<div class="service">
+<h3>
+    <b>＊サービス</b>
+</h3>
+<div class="service" id="{{ service }}" data-toggle="modal" data-target="#detail_view" data-backdrop="true"
+     data-item_id="{{ service }}">
+    <p></p>
+    <div class="service">
+        {% for item in service %}
+            &nbsp;&nbsp;{{ item }}<br/>
+
+        {% empty %}
+            &nbsp;&nbsp;データがありませんでした．
+
+        {% endfor %}
+    </p>
+    </div>
+</div>
+<br/>
+
+<div class="cost">
+<h3><b>＊価格</b></h3>
+<div class="cost" id="{{ cost }}" data-toggle="modal" data-target="#detail_view" data-backdrop="true"
+     data-item_id="{{ cost }}">
+<p></p>
+<div class="cost">
+    {% for item in cost %}
+        &nbsp;&nbsp;{{ item }}<br/>
+    {% empty %}
+        &nbsp;&nbsp;データがありませんでした．
+    {% endfor %}
+</p>
+</div>
+</div>
+
+<br/><br/>
+
+</a><a href="https://api.gnavi.co.jp/api/scope/" target="_blank">
+<img src="https://api.gnavi.co.jp/api/img/credit/api_265_65.gif" width="265" height="65" border="0" alt="グルメ情報検索サイト　ぐるなび">
+</a>
+
+</body>
+
+<script>
+{#var MyLatLng = new google.maps.LatLng(35.6811673, 139.7670516);#}
+var Lat = document.getElementById('lat').value;
+var Lng = document.getElementById('lng').value;
+
+var data_lag = document.getElementById('data_lag').value;
+var data_lng = document.getElementById('data_lng').value;
+var name = document.getElementById('name').value;
+
+{#var data_lat = 35.6811673;#}
+{#var data_lng = 139.7670516;#}
+
+var MyLatLng = new google.maps.LatLng(Lat, Lng);
+
+var Options = {
+ zoom: 17,      //地図の縮尺値
+ center: MyLatLng,    //地図の中心座標
+ mapTypeId: 'roadmap'   //地図の種類
+};
+var map = new google.maps.Map(document.getElementById('map'), Options);
+
+var data_lag = data_lag.replace("[","")
+var data_lng = data_lng.replace("[","")
+var name = name.replace("[","")
+
+var data_lag = data_lag.replace("]","")
+var data_lng = data_lng.replace("]","")
+var name = name.replace("]","")
+
+var data_lag = data_lag.split(",")
+var data_lng = data_lng.split(",")
+var names = name.split(",")
+
+for (i=0; i<data_lag.length; i++) {
+    var a = data_lag[i].replace(/'/g,"");
+    var b = data_lng[i].replace(/'/g,"");
+    var c = names[i].replace(/'/g,"");
+
+    create_marker(a, b, c);
+}
+
+function create_marker(lat, lng, name){
+　var marker_options = {
+　  map: map,
+    position: new google.maps.LatLng(lat, lng),
+    zIndex: 0,
+  };
+  // 変数 marker
+  var marker = new google.maps.Marker(marker_options);
+  var infoWindow = new google.maps.InfoWindow({
+        content: name
+  });
+ marker.addListener('click', function() { // マーカーをクリックしたとき
+     infoWindow.open(map, marker); // 吹き出しの表示
+    });
+}
+
+</script>
+
+<script language="javascript" type="text/javascript">
+function OnButtonClick() {
+  var x = document.getElementById('address').value;
+          // var y = document.getElementById('freeword').value;
+  getLatLng(x);
+ }
+</script>
+
+<script>
+function getLatLng(place) {
+  // ジオコーダのコンストラクタ
+  var geocoder = new google.maps.Geocoder();
+
+  // geocodeリクエストを実行。
+  // 第１引数はGeocoderRequest。住所⇒緯度経度座標の変換時はaddressプロパティを入れればOK。
+  // 第２引数はコールバック関数。
+  geocoder.geocode({
+    address: place
+  }, function(results, status) {
+    if (status == google.maps.GeocoderStatus.OK) {
+
+      // 結果の表示範囲。結果が１つとは限らないので、LatLngBoundsで用意。
+      var bounds = new google.maps.LatLngBounds();
+
+      for (var i in results) {
+        if (results[i].geometry) {
+
+          // 緯度経度を取得
+          var latlng = results[i].geometry.location;
+
+          // 住所を取得(日本の場合だけ「日本, 」を削除)
+          var address = results[0].formatted_address.replace(/^日本, /, '');
+
+          // 検索結果地が含まれるように範囲を拡大
+          // bounds.extend(latlng);
+
+          var Options = {
+           zoom: 18,      //地図の縮尺値
+           center: latlng,    //地図の中心座標
+           mapTypeId: 'roadmap'   //地図の種類
+          };
+          var map = new google.maps.Map(document.getElementById('map'), Options);
+
+          new google.maps.InfoWindow({
+            // content: address + "<br>(Lat, Lng) = " + latlng.toString()
+            content: address
+          }).open(map, new google.maps.Marker({
+            position: latlng,
+            map: map
+          }));
+        }
+      }
+
+      // 範囲を移動
+      // map.fitBounds(bounds);
+
+      document.getElementById('point').value = latlng;
+      {#document.getElementById('ans').innerHTML = latlng;#}
+
+    } else if (status == google.maps.GeocoderStatus.ERROR) {
+      alert("ERROR");
+    } else if (status == google.maps.GeocoderStatus.INVALID_REQUEST) {
+      alert("INVALID REQUEST");
+    } else if (status == google.maps.GeocoderStatus.OVER_QUERY_LIMIT) {
+      alert("OVER QUERY LIMIT");
+    } else if (status == google.maps.GeocoderStatus.REQUEST_DENIED) {
+      alert("REQUEST DENIED");
+    } else if (status == google.maps.GeocoderStatus.UNKNOWN_ERROR) {
+      alert("UNKNOWN ERROR");
+    } else if (status == google.maps.GeocoderStatus.ZERO_RESULTS) {
+      alert("正しい地名を入力してください");
+    } else {
+      alert("ERROR");
+    }
+  });
+}
+</script>
+
+
+</html>
